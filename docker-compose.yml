@@ -1,0 +1,63 @@
+version: '3'
+services:
+
+  prometheus:
+    image: prom/prometheus:latest
+    restart: on-failure
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+    ports:
+      - 9090:9090
+
+  nodeexporter:
+    image: prom/node-exporter:latest
+    restart: on-failure
+    user: root
+    privileged: true
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.ignored-mount-points=^/(sys|proc|dev|host|etc)($$|/)'
+
+  uptimerobot-exporter:
+    image: fslabs/uptimerobot-exporter
+    environment:
+      - UPTIMEROBOT_API_KEY=MY_API_KEY
+
+  cadvisor:
+    image: google/cadvisor:v0.28.3
+    restart: on-failure
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /cgroup:/cgroup:ro #doesn't work on MacOS only for Linux
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: on-failure
+    volumes:
+      - grafana-data:/var/lib/grafana
+    ports:
+      - 3000:3000
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=super-secure-admin-password
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_DOMAIN=replace.me
+      - GF_SMTP_ENABLED=true
+      - GF_SMTP_HOST=smtp.gmail.com:587
+      - GF_SMTP_USER=myemailadrress@gmail.com
+      - GF_SMTP_PASSWORD=myemailpassword
+      - GF_SMTP_FROM_ADDRESS=myemailaddress@gmail.com
+
+volumes:
+ grafana-data:
+ prometheus-data:

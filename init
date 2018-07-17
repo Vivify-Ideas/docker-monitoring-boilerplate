@@ -1,0 +1,52 @@
+#!/bin/bash
+#
+# Add Prometheus datasource and dashboards to Grafana
+#
+# This script is following Google Shell Style standard
+# https://google.github.io/styleguide/shell.xml
+
+# STDERR log function
+err() {
+  echo -e "\n[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@\n" >&2
+  exit 1
+}
+
+# STDOUT log function
+log() {
+  echo -e "\n[$(date +'%Y-%m-%dT%H:%M:%S%z')]: $@\n"
+}
+
+# Check if Curl is installed
+if ! type "curl" > /dev/null 2>&1; then
+    err "Curl not installed. Exiting.."
+fi
+
+# Send POST request to Grafana API to create Prometheus datasource
+log "Creating Prometheus datasource.."
+curl --user admin:super-secure-admin-password 'http://127.0.0.1:3000/api/datasources' \
+-X POST -H 'Content-Type: application/json;charset=UTF-8' --data-binary \
+'{"name":"Prometheus","isDefault":true ,"type":"prometheus","url":"http://prometheus:9090", "access": "proxy"}'
+
+if [ $? -ne 0 ]; then
+    err "Error while creating Prometheus datasource. Exiting.."
+fi
+
+# Send POST request to Grafana API to create UptimeRobot dashboard
+log "Creating UptimeRobot dashboard.."
+curl --user admin:super-secure-admin-password 'http://127.0.0.1:3000/api/dashboards/db' \
+-X POST -H 'Content-Type: application/json;charset=UTF-8' -d @grafana-dashboards/UptimeRobotDashboard.json
+
+if [ $? -ne 0 ]; then
+    err "Error while creating UptimeRobot dashboard. Exiting.."
+fi
+
+# Send POST request to Grafana API to create Docker Engine dashboard
+log "Creating Docker Engine dashboard.."
+curl --user admin:super-secure-admin-password 'http://127.0.0.1:3000/api/dashboards/db' \
+-X POST -H 'Content-Type: application/json;charset=UTF-8' -d @grafana-dashboards/DockerEngineMonitorDashboard.json
+
+if [ $? -ne 0 ]; then
+    err "Error while creating Docker Engine dashboard. Exiting.."
+fi
+
+exit 0
